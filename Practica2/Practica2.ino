@@ -90,13 +90,14 @@ void loop()
   delayMicroseconds(10);
   digitalWrite(Trig, LOW);
   servo.write(90);
+  duracion = pulseIn(Echo, HIGH);
+  distancia = (duracion / 2) / 29;
+  Serial.println(distancia);
 
-  //duracion = pulseIn(Echo, HIGH);
-  //distancia = (duracion / 2) / 29;
-
-  //Serial.println(distancia);
-
-
+  if (distancia <= 15 && distancia >= 2) {  // si la distancia es menor de 15cm
+    Serial.println("Entro");
+    evitarObstaculo();
+  }
 
 
   //Sensor Central, nos indica si el carro va por el centro
@@ -283,4 +284,18 @@ void loop()
       }
     }
   }
+}
+
+void evitarObstaculo() {
+  digitalWrite(53, HIGH);                // Enciende LED
+
+  analogWrite(PwmI, 0);
+  analogWrite(PwmD, 0);
+  digitalWrite(LlantaIA, LOW);
+  digitalWrite(LlantaIR, LOW);
+
+  digitalWrite(LlantaDA, LOW);
+  digitalWrite(LlantaDR, LOW);
+  delay(1000);
+  digitalWrite(53, LOW);
 }
