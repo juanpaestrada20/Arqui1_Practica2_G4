@@ -3,11 +3,10 @@
  <FRAME activewindow="0">
   <PLACEMENT>2c0000000200000003000000ffffffffffffffffffffffffffffffff7e000000e4faffff9a060000d2feffff</PLACEMENT>
   <WINDOW type="default" module="ISIS"/>
-  <WINDOW type="default" module="DXP"/>
  </FRAME>
  <MODULE name="VSMDEBUG">
   <PWI>
-   <POPUP w="800" x="48" flags="00000002" y="-1190" h="200" pid="0" iid="-1">
+   <POPUP w="800" x="48" flags="00000003" y="-1190" h="200" pid="0" iid="-1">
     <PROPERTIES>
      <ITEM name="Message Column Width">661</ITEM>
      <ITEM name="ShowGrid">No</ITEM>
@@ -42,7 +41,7 @@
      <ITEM name="HexMode">0</ITEM>
     </PROPERTIES>
    </POPUP>
-   <POPUP w="258" x="128" flags="00000008" y="-1110" h="255" pid="3" iid="14">
+   <POPUP w="258" x="128" flags="00000009" y="-1110" h="255" pid="3" iid="14">
     <PROPERTIES/>
    </POPUP>
    <POPUP w="8" x="148" flags="0000000a" y="-1090" h="1" pid="10" iid="14">
@@ -105,8 +104,14 @@
      <ITEM name="TopLineAddress">00000020</ITEM>
     </PROPERTIES>
    </POPUP>
-   <POPUP w="705" x="424" flags="00008023" y="-1055" h="473" pid="1" iid="13">
+   <POPUP w="1261" x="540" flags="00008023" y="-857" h="714" pid="1" iid="13">
     <PROPERTIES/>
+   </POPUP>
+   <POPUP w="730" x="48" flags="00000023" y="-1190" h="302" pid="0" iid="3">
+    <PROPERTIES>
+     <ITEM name="AutoEcho">0</ITEM>
+     <ITEM name="HexMode">0</ITEM>
+    </PROPERTIES>
    </POPUP>
   </PWI>
  </MODULE>
