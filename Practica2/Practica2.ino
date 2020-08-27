@@ -127,8 +127,8 @@ void loop()
   if (SA == LOW && SB == HIGH && SC == LOW)
   {
     //Configuramos la velociad para que ambas llantas vayan a la misma velocidad y por ende vaya recto
-    analogWrite(PwmI, 25);
-    analogWrite(PwmD, 25);
+    analogWrite(PwmI, 100);
+    analogWrite(PwmD, 100);
 
     //Colocamos que las llantas vayan hacia Adelante
     digitalWrite(LlantaIA, HIGH);
@@ -139,28 +139,34 @@ void loop()
 
     Estabilizador = 0;
     EstabilizadorAux = 1;
-    delay(300);
   }
 
   //Regreso a la linea guia, girando a la izquierda
   if (SA == HIGH && SB == HIGH && SC == LOW)
   {
+    //Este es el caso en donde el robot debe girar a la izquierda
     //Hacemos girar el robot en contra de las agujas del reloj
-    analogWrite(PwmI, 10);
+    analogWrite(PwmI, 30);
     analogWrite(PwmD, 30);
 
-    digitalWrite(LlantaIA, LOW);
-    digitalWrite(LlantaIR, HIGH);
-
-    digitalWrite(LlantaDA, HIGH);
-    digitalWrite(LlantaDR, LOW);
-
-    // Tiempo que debe tardar en moverse adelante
-    delay(200);
-
-    restablecer();
     Estabilizador = 1;
-    EstabilizadorAux = 0;
+    if (EstabilizadorAux == 0) {
+      digitalWrite(LlantaIA, LOW);
+      digitalWrite(LlantaIR, HIGH);
+
+      digitalWrite(LlantaDA, HIGH);
+      digitalWrite(LlantaDR, LOW);
+    } else {
+      analogWrite(PwmI, 30);
+      analogWrite(PwmD, 30);
+      digitalWrite(LlantaIA, LOW);
+      digitalWrite(LlantaIR, HIGH);
+
+      digitalWrite(LlantaDA, HIGH);
+      digitalWrite(LlantaDR, LOW);
+      delay(100);
+    }
+
   }
 
   //Regresando a la linea guia, girando a la derecha
@@ -168,20 +174,27 @@ void loop()
   {
     //Hacemos girar el robot a favor de las agujas del reloj
     analogWrite(PwmI, 30);
-    analogWrite(PwmD, 10);
+    analogWrite(PwmD, 30);
 
-    //Colocamos que las llantas vayan hacia Adelante
-    digitalWrite(LlantaIA, HIGH);
-    digitalWrite(LlantaIR, LOW);
-
-    digitalWrite(LlantaDA, LOW);
-    digitalWrite(LlantaDR, HIGH);
-
-    delay(200);
-
-    restablecer();
     Estabilizador = 2;
-    EstabilizadorAux = 0;
+    if (EstabilizadorAux == 1) {
+
+      //Colocamos que las llantas vayan hacia Adelante
+      digitalWrite(LlantaIA, HIGH);
+      digitalWrite(LlantaIR, LOW);
+
+      digitalWrite(LlantaDA, LOW);
+      digitalWrite(LlantaDR, HIGH);
+    } else {
+      analogWrite(PwmI, 30);
+      analogWrite(PwmD, 30);
+      digitalWrite(LlantaIA, HIGH);
+      digitalWrite(LlantaIR, LOW);
+
+      digitalWrite(LlantaDA, HIGH);
+      digitalWrite(LlantaDR, LOW);
+      delay(100);
+    }
   }
 
   //Los sensores nos indican que solo uno de los extremos esta activo, por lo cual
@@ -192,6 +205,8 @@ void loop()
     detener();
     //Retrosedemos un poco para que el robot sepa a donde girar
     retroceder(100, 40, 10);
+
+    Estabilizador = 1;
   }
 
   if (SA == LOW && SB == LOW && SC == HIGH) {
@@ -199,6 +214,8 @@ void loop()
     detener();
     //Retrosedemos un poco para que el robot sepa a donde girar
     retroceder(100, 10, 40);
+
+    Estabilizador = 2;
   }
 
   //Estabilizador
@@ -209,7 +226,7 @@ void loop()
     if (Estabilizador == 1)
     {
       //Se configura la velocidad para que este pueda dar una vuelta y pueda encontrar a donde debe irse y no salirse
-      analogWrite(PwmI, 10);
+      analogWrite(PwmI, 30);
       analogWrite(PwmD, 30);
 
       digitalWrite(LlantaIA, HIGH);
@@ -225,7 +242,7 @@ void loop()
     {
       //Se configura la velocidad para que este pueda dar una vuelta y pueda encontrar a donde debe irse y no salirse
       analogWrite(PwmI, 30);
-      analogWrite(PwmD, 10);
+      analogWrite(PwmD, 30);
 
       digitalWrite(LlantaIA, LOW);
       digitalWrite(LlantaIR, HIGH);
@@ -257,18 +274,22 @@ void loop()
       delay(300);
     }
   }
+  //Activamos el trigger
   digitalWrite(Trig, LOW);
   delayMicroseconds(2);
   digitalWrite(Trig, HIGH);
   delayMicroseconds(10);
   digitalWrite(Trig, LOW);
+  //Colocamos el angulo que queremos el sensor ultrasonico
   servo.write(90);
-  digitalWrite(PwmI, 10);
-  digitalWrite(PwmD, 10);
+  //Vemos la duracion que tarde en recibir el pulso enviado del ultrasonico
+  //Si es 0 no hay nada
+  //los 500 es el tiempo en microsegundo que se tarda en enviar el pulso, sino se pone el default es 1 segundo y vale pepino el loop
   duracion = pulseIn(Echo, HIGH, 500);
+  //ecuacion para obtener la distancia del objeto
   distancia = (duracion / 2) / 29;
   Serial.println(distancia);
-  if (distancia <= 6 && distancia >= 2) {  // si la distancia es menor de 15cm
+  if (distancia <= 6 && distancia >= 2) {  // si la distancia es menor de 6cm
     Serial.println("Entro");
     evitarObstaculo();
   }
@@ -289,60 +310,76 @@ void evitarObstaculo() {
   */
   int estado = 0;
   digitalWrite(53, HIGH);                // Enciende LED
-  while ((distancia > 1 && distancia < 8) || estado < 5 ) {
-    Serial.print("EStado:");
+  while ((distancia > 1 && distancia <= 10 ) || estado < 5 ) {
+    Serial.print("Estado:");
     Serial.println(estado);
     switch (estado) {
       case 0:
         girarDerecha90();
+        analogWrite(PwmI, 25);
+      analogWrite(PwmD, 25);
+
+      //Colocamos que las llantas vayan hacia Adelante
+      digitalWrite(LlantaIA, HIGH);
+      digitalWrite(LlantaIR, LOW);
+
+      digitalWrite(LlantaDA, HIGH);
+      digitalWrite(LlantaDR, LOW);
         Estabilizador = 1;
         tomarDistancia();
         if (hayObstaculo()) {
           //girar a la izquierda ---> posicion original
           girarIzquierda90();
-          recto();
+          if (!recto(estado))return;
         }
         else {
           //moverse recto ---> avanzamos
-          recto();
+          if (!recto(estado))return;
           estado++;
         }
         break;
 
       case 1: case 3: case 4:
-        girarIzquierda90();
+        //girarIzquierda90();
+        servo.write(0);
+        detenerCachito();
         if (hayLinea())
           return;
         tomarDistancia();
+        servo.write(90);
         Estabilizador = 2;
         if (hayObstaculo()) {
           //girar a la derecha  ---> posicion original
           girarDerecha90();
-          recto();
+          if (!recto(estado))return;
         }
         else {
+          girarIzquierda90();
           //moverse recto ---> avanzamos
-          recto();
+          if (!recto(estado))return;
           estado++;
         }
         break;
       case 2:
-        girarIzquierda90();
+        //girarIzquierda90();
+        servo.write(0);
+        detenerCachito();
         if (hayLinea())
           return;
         tomarDistancia();
-        Estabilizador =1;
-        if (hayObstaculo()) {
+        Estabilizador = 1;
+        servo.write(90);
+        if (!hayObstaculo()) {
           //girar a la derecha  ---> posicion original
           girarDerecha90();
-          recto();
+          if (!recto(estado))return;
         }
         else {
           //moverse recto ---> avanzamos
-          recto();
+          if (!recto(estado))return;
           if (hayLinea())
             return;
-          recto();
+          if (!recto(estado))return;
           if (hayLinea())
             return;
           estado++;
@@ -352,11 +389,12 @@ void evitarObstaculo() {
         //Saber donde jodidos estamos, doblar a algun lado y rogar a Dios para encontrar linea
         estado = 5;
         girarDerecha90();
-        recto();
+        if (!recto(estado))return;
         break;
     }
   }
 }
+
 void tomarDistancia() {
   Serial.println("tomando distancia-------------");
   digitalWrite(Trig, HIGH);
@@ -404,7 +442,7 @@ void girarIzquierda90() {
   detenerCachito();
 }
 
-void recto() {
+boolean recto(int estado) {
   Serial.println("RECTO");
   //Configuramos la velociad para que ambas llantas vayan a la misma velocidad y por ende vaya recto
   analogWrite(PwmI, 100);
@@ -417,14 +455,16 @@ void recto() {
   digitalWrite(LlantaDA, HIGH);
   digitalWrite(LlantaDR, LOW);
   int contador = 0;
-    while(contador < 5){
-     if(hayLinea()){
-      return;
+  while (contador < 15) {
+    if (hayLinea() && estado != 0) {
+      return false;
     }
     contador++;
-    delay(600);
+    delay(150);
   }
+  return true;
 }
+
 void detenerCachito() {
   analogWrite(PwmD, 0);
   analogWrite(PwmI, 0);
@@ -440,7 +480,7 @@ boolean hayLinea() {
   SA = digitalRead(SIzq);
   SB = digitalRead(SCen);
   SC = digitalRead(SDer);
-  if (SA == HIGH || SB == HIGH || SC == HIGH){
+  if (SA == HIGH || SB == HIGH || SC == HIGH) {
     detenerCachito();
     return true;
   }
