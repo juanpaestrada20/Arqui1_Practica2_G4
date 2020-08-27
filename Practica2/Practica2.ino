@@ -48,21 +48,6 @@ int vel = 255;
 
 Servo servo;
 
-
-void evitarObstaculo() {
-  digitalWrite(53, HIGH);                // Enciende LED para que nos ayude ver que encontro un obstaculo
-
-  analogWrite(PwmI, 0);
-  analogWrite(PwmD, 0);
-  digitalWrite(LlantaIA, LOW);
-  digitalWrite(LlantaIR, LOW);
-
-  digitalWrite(LlantaDA, LOW);
-  digitalWrite(LlantaDR, LOW);
-  delay(1000);//aca debe ir el metodo para eviar obstaculsos
-  digitalWrite(53, LOW);
-}
-
 void detener() {
   //Detenemos el carro
   analogWrite(PwmD, 0);
@@ -87,9 +72,9 @@ void restablecer() {
   delay(100);
 }
 
-void retroceder(int t) {
-  analogWrite(PwmD, 25);
-  analogWrite(PwmI, 25);
+void retroceder(int t, int x, int y) {
+  analogWrite(PwmD, y);
+  analogWrite(PwmI, x);
 
   digitalWrite(LlantaIA, LOW);
   digitalWrite(LlantaIR, HIGH);
@@ -201,12 +186,19 @@ void loop()
 
   //Los sensores nos indican que solo uno de los extremos esta activo, por lo cual
   //se procede a que el vehiculo retroseda para que se re ubique a donde debe continuar el giro
-  if ((SA == HIGH && SB == LOW && SC == LOW) || (SA == LOW && SB == LOW && SC == HIGH))
+  if (SA == HIGH && SB == LOW && SC == LOW)
   {
     //Detenemos el carro
     detener();
     //Retrosedemos un poco para que el robot sepa a donde girar
-    retroceder(100);
+    retroceder(100, 40, 10);
+  }
+
+  if (SA == LOW && SB == LOW && SC == HIGH) {
+    //Detenemos el carro
+    detener();
+    //Retrosedemos un poco para que el robot sepa a donde girar
+    retroceder(100, 10, 40);
   }
 
   //Estabilizador
@@ -250,7 +242,7 @@ void loop()
     //Vemos si este Estabilizador iba recto
     if (EstabilizadorAux == 0) {
       detener();
-      retroceder(200);
+      retroceder(200, 30, 30);
     } else {
       //Configuramos la velociad para que ambas llantas vayan a la misma velocidad y por ende vaya recto
       analogWrite(PwmI, 25);
@@ -276,9 +268,181 @@ void loop()
   duracion = pulseIn(Echo, HIGH, 500);
   distancia = (duracion / 2) / 29;
   Serial.println(distancia);
-  if (distancia <= 15 && distancia >= 2) {  // si la distancia es menor de 15cm
+  if (distancia <= 6 && distancia >= 2) {  // si la distancia es menor de 15cm
     Serial.println("Entro");
     evitarObstaculo();
   }
 
+}
+
+void evitarObstaculo() {
+  /*
+    Estado 0 -> ir a la derecha
+    EStado 1 -> ir a la izquierda
+    Estado 2 -> ir a la izquierda
+    Aca tuvimos que haber encontrado la linea, si no la encontramos empezamos a hacer un cuadrado
+    con los estados 3 y 4
+    Estado 3 -> ir a la izquierda
+    En cada estado comprobar si hay obstaculo
+        si hay obstaculo --> girar sobre si en el sentido contrario a donde giro
+        no hay obstaculo --> avanzamos recto
+  */
+  int estado = 0;
+  digitalWrite(53, HIGH);                // Enciende LED
+  while ((distancia > 1 && distancia < 8) || estado < 5 ) {
+    Serial.print("EStado:");
+    Serial.println(estado);
+    switch (estado) {
+      case 0:
+        girarDerecha90();
+        Estabilizador = 1;
+        tomarDistancia();
+        if (hayObstaculo()) {
+          //girar a la izquierda ---> posicion original
+          girarIzquierda90();
+          recto();
+        }
+        else {
+          //moverse recto ---> avanzamos
+          recto();
+          estado++;
+        }
+        break;
+
+      case 1: case 3: case 4:
+        girarIzquierda90();
+        if (hayLinea())
+          return;
+        tomarDistancia();
+        Estabilizador = 2;
+        if (hayObstaculo()) {
+          //girar a la derecha  ---> posicion original
+          girarDerecha90();
+          recto();
+        }
+        else {
+          //moverse recto ---> avanzamos
+          recto();
+          estado++;
+        }
+        break;
+      case 2:
+        girarIzquierda90();
+        if (hayLinea())
+          return;
+        tomarDistancia();
+        Estabilizador =1;
+        if (hayObstaculo()) {
+          //girar a la derecha  ---> posicion original
+          girarDerecha90();
+          recto();
+        }
+        else {
+          //moverse recto ---> avanzamos
+          recto();
+          if (hayLinea())
+            return;
+          recto();
+          if (hayLinea())
+            return;
+          estado++;
+        }
+        break;
+      default:
+        //Saber donde jodidos estamos, doblar a algun lado y rogar a Dios para encontrar linea
+        estado = 5;
+        girarDerecha90();
+        recto();
+        break;
+    }
+  }
+}
+void tomarDistancia() {
+  Serial.println("tomando distancia-------------");
+  digitalWrite(Trig, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(Trig, LOW);
+  duracion = pulseIn(Echo, HIGH);
+  distancia = (duracion / 2) / 29;
+}
+boolean hayObstaculo() {
+  if (distancia > 0 && distancia < 15) {
+    Serial.println("Hay Obstaculo");
+    return true;
+  }
+  return false;
+}
+void girarDerecha90() {
+  Serial.println("DERECHA");
+
+  //Configuramos la velociad para que la llanta izquierda vaya mas rapido y consiga que el carro comience a girar a la derecha
+  analogWrite(PwmI, 100);
+  analogWrite(PwmD, 80);
+
+  //Colocamos que las llantas vayan hacia Adelante
+  digitalWrite(LlantaIA, HIGH);
+  digitalWrite(LlantaIR, LOW);
+
+  digitalWrite(LlantaDA, LOW);
+  digitalWrite(LlantaDR, HIGH);
+
+  delay(1150);
+  detenerCachito();
+}
+void girarIzquierda90() {
+  Serial.println("IZQUIERDA");
+  analogWrite(PwmI, 80);
+  analogWrite(PwmD, 100);
+
+  //Colocamos que las llantas vayan hacia Adelante
+  digitalWrite(LlantaIA, LOW);
+  digitalWrite(LlantaIR, HIGH);
+
+  digitalWrite(LlantaDA, HIGH);
+  digitalWrite(LlantaDR, LOW);
+  delay(1150);
+  detenerCachito();
+}
+
+void recto() {
+  Serial.println("RECTO");
+  //Configuramos la velociad para que ambas llantas vayan a la misma velocidad y por ende vaya recto
+  analogWrite(PwmI, 100);
+  analogWrite(PwmD, 100);
+
+  //Colocamos que las llantas vayan hacia Adelante
+  digitalWrite(LlantaIA, HIGH);
+  digitalWrite(LlantaIR, LOW);
+
+  digitalWrite(LlantaDA, HIGH);
+  digitalWrite(LlantaDR, LOW);
+  int contador = 0;
+    while(contador < 5){
+     if(hayLinea()){
+      return;
+    }
+    contador++;
+    delay(600);
+  }
+}
+void detenerCachito() {
+  analogWrite(PwmD, 0);
+  analogWrite(PwmI, 0);
+
+  digitalWrite(LlantaIA, LOW);
+  digitalWrite(LlantaIR, LOW);
+
+  digitalWrite(LlantaDA, LOW);
+  digitalWrite(LlantaDR, LOW);
+  delay(200);
+}
+boolean hayLinea() {
+  SA = digitalRead(SIzq);
+  SB = digitalRead(SCen);
+  SC = digitalRead(SDer);
+  if (SA == HIGH || SB == HIGH || SC == HIGH){
+    detenerCachito();
+    return true;
+  }
+  return false;
 }
