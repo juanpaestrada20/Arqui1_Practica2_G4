@@ -32,6 +32,8 @@
 */
 int SA, SB, SC;
 int Estabilizador = 0;
+// EstabilizadorAux nos ayuda a ver si el objeto iba recto y se salio de de la linea
+int EstabilizadorAux = 0;
 
 // Velocidad Pwm
 /*
@@ -45,6 +47,58 @@ long distancia;
 int vel = 255;
 
 Servo servo;
+
+
+void evitarObstaculo() {
+  digitalWrite(53, HIGH);                // Enciende LED para que nos ayude ver que encontro un obstaculo
+
+  analogWrite(PwmI, 0);
+  analogWrite(PwmD, 0);
+  digitalWrite(LlantaIA, LOW);
+  digitalWrite(LlantaIR, LOW);
+
+  digitalWrite(LlantaDA, LOW);
+  digitalWrite(LlantaDR, LOW);
+  delay(1000);//aca debe ir el metodo para eviar obstaculsos
+  digitalWrite(53, LOW);
+}
+
+void detener() {
+  //Detenemos el carro
+  analogWrite(PwmD, 0);
+  analogWrite(PwmI, 0);
+
+  digitalWrite(LlantaIA, LOW);
+  digitalWrite(LlantaIR, LOW);
+
+  digitalWrite(LlantaDA, LOW);
+  digitalWrite(LlantaDR, LOW);
+}
+
+void restablecer() {
+  analogWrite(PwmI, 20);
+  analogWrite(PwmD, 20);
+
+  digitalWrite(LlantaIA, HIGH);
+  digitalWrite(LlantaIR, LOW);
+
+  digitalWrite(LlantaDA, HIGH);
+  digitalWrite(LlantaDR, LOW);
+  delay(100);
+}
+
+void retroceder(int t) {
+  analogWrite(PwmD, 25);
+  analogWrite(PwmI, 25);
+
+  digitalWrite(LlantaIA, LOW);
+  digitalWrite(LlantaIR, HIGH);
+
+  digitalWrite(LlantaDA, LOW);
+  digitalWrite(LlantaDR, HIGH);
+
+  delay(t);
+}
 
 void setup()
 {
@@ -84,28 +138,12 @@ void loop()
   SB = digitalRead(SCen);
   SC = digitalRead(SDer);
 
-  digitalWrite(Trig, LOW);
-  delayMicroseconds(2);
-  digitalWrite(Trig, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(Trig, LOW);
-  servo.write(90);
-  duracion = pulseIn(Echo, HIGH);
-  distancia = (duracion / 2) / 29;
-  Serial.println(distancia);
-
-  if (distancia <= 15 && distancia >= 2) {  // si la distancia es menor de 15cm
-    Serial.println("Entro");
-    evitarObstaculo();
-  }
-
-
   //Sensor Central, nos indica si el carro va por el centro
   if (SA == LOW && SB == HIGH && SC == LOW)
   {
     //Configuramos la velociad para que ambas llantas vayan a la misma velocidad y por ende vaya recto
-    analogWrite(PwmI, 50);
-    analogWrite(PwmD, 50);
+    analogWrite(PwmI, 25);
+    analogWrite(PwmD, 25);
 
     //Colocamos que las llantas vayan hacia Adelante
     digitalWrite(LlantaIA, HIGH);
@@ -115,44 +153,37 @@ void loop()
     digitalWrite(LlantaDR, LOW);
 
     Estabilizador = 0;
+    EstabilizadorAux = 1;
     delay(300);
   }
 
-  // Sensor Central e Izquierda, verifica si debe comenzar a girar a la Izquierda
+  //Regreso a la linea guia, girando a la izquierda
   if (SA == HIGH && SB == HIGH && SC == LOW)
   {
-    //Configuramos la velociad para que la llanta derecha vaya mas rapido y consiga que el carro comience a girar a la izquierda
-    analogWrite(PwmI, 80);
-    analogWrite(PwmD, 100);
+    //Hacemos girar el robot en contra de las agujas del reloj
+    analogWrite(PwmI, 10);
+    analogWrite(PwmD, 30);
 
-    //Colocamos que las llantas vayan hacia Adelante
     digitalWrite(LlantaIA, LOW);
     digitalWrite(LlantaIR, HIGH);
 
     digitalWrite(LlantaDA, HIGH);
     digitalWrite(LlantaDR, LOW);
 
-    delay(300);
+    // Tiempo que debe tardar en moverse adelante
+    delay(200);
 
-    // Reducimos la velocidad para que se estabilice y asi no se salga del camino
-    analogWrite(PwmI, 100);
-    analogWrite(PwmD, 80);
-
-    //Colocamos que las llantas vayan hacia Adelante
-    digitalWrite(LlantaIA, HIGH);
-    digitalWrite(LlantaIR, LOW);
-
-    digitalWrite(LlantaDA, HIGH);
-    digitalWrite(LlantaDR, LOW);
-    delay(100);
+    restablecer();
+    Estabilizador = 1;
+    EstabilizadorAux = 0;
   }
 
-  // Sensor Central y derecha, verifica si debe comenzar a girar a la derecha
+  //Regresando a la linea guia, girando a la derecha
   if (SA == LOW && SB == HIGH && SC == HIGH)
   {
-    //Configuramos la velociad para que la llanta izquierda vaya mas rapido y consiga que el carro comience a girar a la derecha
-    analogWrite(PwmI, 100);
-    analogWrite(PwmD, 80);
+    //Hacemos girar el robot a favor de las agujas del reloj
+    analogWrite(PwmI, 30);
+    analogWrite(PwmD, 10);
 
     //Colocamos que las llantas vayan hacia Adelante
     digitalWrite(LlantaIA, HIGH);
@@ -161,55 +192,21 @@ void loop()
     digitalWrite(LlantaDA, LOW);
     digitalWrite(LlantaDR, HIGH);
 
-    delay(300);
+    delay(200);
 
-    // Reducimos la velocidad para que se estabilice y asi no se salga del camino
-    analogWrite(PwmI, 80);
-    analogWrite(PwmD, 100);
-
-    //Colocamos que las llantas vayan hacia Adelante
-    digitalWrite(LlantaIA, HIGH);
-    digitalWrite(LlantaIR, LOW);
-
-    digitalWrite(LlantaDA, HIGH);
-    digitalWrite(LlantaDR, LOW);
-    delay(100);
-  }
-
-  // Sensor izquierda, nos dice que el robot debe regresar rapidamente a la izquierda para que pueda continuar en la linea
-  if (SA == HIGH && SB == LOW && SC == LOW)
-  {
-    //Configuramos la velociad para que la llanta derecha vaya mas rapido y consiga que el carro comience a girar a la izquierda rapidamente
-    analogWrite(PwmD, 140);
-    analogWrite(PwmI, 15);
-
-    //Colocamos que las llantas vayan hacia Adelante
-    digitalWrite(LlantaIA, HIGH);
-    digitalWrite(LlantaIR, LOW);
-
-    digitalWrite(LlantaDA, HIGH);
-    digitalWrite(LlantaDR, LOW);
-
-    //Se estabilizo por la derecha
-    Estabilizador = 1;
-  }
-
-  // Sensor derecho, nos dice que el robot debe regresar rapidamente a la derecha para que pueda continuar en la linea
-  if (SA == LOW && SB == LOW && SC == HIGH)
-  {
-    //Configuramos la velociad para que la llanta derecha vaya mas rapido y consiga que el carro comience a girar a la izquierda rapidamente
-    analogWrite(PwmI, 140);
-    analogWrite(PwmD, 15);
-
-    //Colocamos que las llantas vayan hacia Adelante
-    digitalWrite(LlantaIA, HIGH);
-    digitalWrite(LlantaIR, LOW);
-
-    digitalWrite(LlantaDA, HIGH);
-    digitalWrite(LlantaDR, LOW);
-
-    //Se estabilizo por la izquierda
+    restablecer();
     Estabilizador = 2;
+    EstabilizadorAux = 0;
+  }
+
+  //Los sensores nos indican que solo uno de los extremos esta activo, por lo cual
+  //se procede a que el vehiculo retroseda para que se re ubique a donde debe continuar el giro
+  if ((SA == HIGH && SB == LOW && SC == LOW) || (SA == LOW && SB == LOW && SC == HIGH))
+  {
+    //Detenemos el carro
+    detener();
+    //Retrosedemos un poco para que el robot sepa a donde girar
+    retroceder(100);
   }
 
   //Estabilizador
@@ -220,82 +217,68 @@ void loop()
     if (Estabilizador == 1)
     {
       //Se configura la velocidad para que este pueda dar una vuelta y pueda encontrar a donde debe irse y no salirse
-      analogWrite(PwmI, 80);
-      analogWrite(PwmD, 100);
+      analogWrite(PwmI, 10);
+      analogWrite(PwmD, 30);
 
-      //Colocamos que las llantas vayan hacia atras girando a la derecha
       digitalWrite(LlantaIA, HIGH);
       digitalWrite(LlantaIR, LOW);
 
       digitalWrite(LlantaDA, LOW);
       digitalWrite(LlantaDR, HIGH);
 
-      delay(700);
+      delay(100);
     }
 
     if (Estabilizador == 2)
     {
       //Se configura la velocidad para que este pueda dar una vuelta y pueda encontrar a donde debe irse y no salirse
-      analogWrite(PwmI, 100);
-      analogWrite(PwmD, 80);
+      analogWrite(PwmI, 30);
+      analogWrite(PwmD, 10);
 
-      //Colocamos que las llantas vayan hacia atras girando a la izquierda
       digitalWrite(LlantaIA, LOW);
       digitalWrite(LlantaIR, HIGH);
 
       digitalWrite(LlantaDA, HIGH);
       digitalWrite(LlantaDR, LOW);
 
-      delay(700);
-    }
-
-    // Si en el caso de recolocarnos en la linea nos salimos y ya no detectamos la linea realizamos lo siguiente
-    if (SA == LOW && SB == LOW && SC == LOW)
-    {
-      //Vemos de que lado fue el que se estabilizo
-      if (Estabilizador == 1)
-      {
-        //Se configura la velocidad para que este pueda dar una vuelta y pueda encontrar a donde debe irse y no salirse
-        analogWrite(PwmI, 20);
-        analogWrite(PwmD, 200);
-
-        //Colocamos que las llantas vayan hacia adelante girando a la izquierda
-        digitalWrite(LlantaIA, HIGH);
-        digitalWrite(LlantaIR, LOW);
-
-        digitalWrite(LlantaDA, HIGH);
-        digitalWrite(LlantaDR, LOW);
-
-      }
-
-      if (Estabilizador == 2)
-      {
-        //Se configura la velocidad para que este pueda dar una vuelta y pueda encontrar a donde debe irse y no salirse
-        analogWrite(PwmI, 200);
-        analogWrite(PwmD, 20);
-
-        //Colocamos que las llantas vayan hacia adelante girando a la derecha
-        digitalWrite(LlantaIA, HIGH);
-        digitalWrite(LlantaIR, LOW);
-
-        digitalWrite(LlantaDA, HIGH);
-        digitalWrite(LlantaDR, LOW);
-
-      }
+      delay(100);
     }
   }
-}
+  // Si en el caso de recolocarnos en la linea nos salimos y ya no detectamos la linea realizamos lo siguiente
+  if (SA == LOW && SB == LOW && SC == LOW)
+  {
+    //Vemos si este Estabilizador iba recto
+    if (EstabilizadorAux == 0) {
+      detener();
+      retroceder(200);
+    } else {
+      //Configuramos la velociad para que ambas llantas vayan a la misma velocidad y por ende vaya recto
+      analogWrite(PwmI, 25);
+      analogWrite(PwmD, 25);
 
-void evitarObstaculo() {
-  digitalWrite(53, HIGH);                // Enciende LED
+      //Colocamos que las llantas vayan hacia Adelante
+      digitalWrite(LlantaIA, HIGH);
+      digitalWrite(LlantaIR, LOW);
 
-  analogWrite(PwmI, 0);
-  analogWrite(PwmD, 0);
-  digitalWrite(LlantaIA, LOW);
-  digitalWrite(LlantaIR, LOW);
+      digitalWrite(LlantaDA, HIGH);
+      digitalWrite(LlantaDR, LOW);
+      delay(300);
+    }
+  }
+  digitalWrite(Trig, LOW);
+  delayMicroseconds(2);
+  digitalWrite(Trig, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(Trig, LOW);
+  servo.write(90);
+  digitalWrite(PwmI, 10);
+  digitalWrite(PwmD, 10);
+  duracion = pulseIn(Echo, HIGH, 500);
+  distancia = (duracion / 2) / 29;
+  Serial.println(distancia);
+  if (distancia <= 15 && distancia >= 2) {  // si la distancia es menor de 15cm
+    Serial.println("Entro");
+    evitarObstaculo();
+  }
 
-  digitalWrite(LlantaDA, LOW);
-  digitalWrite(LlantaDR, LOW);
-  delay(1000);
-  digitalWrite(53, LOW);
 }
