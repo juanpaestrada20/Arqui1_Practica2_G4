@@ -34,7 +34,7 @@
 int SA, SB, SC;
 int Estabilizador = 0;
 // EstabilizadorAux nos ayuda a ver si el objeto iba recto y se salio de de la linea
-int EstabilizadorAux = 0;
+int EstabilizadorAux = 1;
 
 // Velocidad Pwm
 /*
@@ -120,7 +120,7 @@ void setup()
 
   pinMode(53, OUTPUT);
 
-   //Sacamos el controlador del modo ahorro de energia
+  //Sacamos el controlador del modo ahorro de energia
   matriz.shutdown(0, false);
 
   //Definimos la intensisdad a medio para el controlador
@@ -128,7 +128,7 @@ void setup()
 
   //Prendemos la posicion inicial
   posXM = 3; posYM = 4;
-  matriz.setLed(0,posYM,posXM,true);
+  matriz.setLed(0, posYM, posXM, true);
   delayMatriz = 0;
 
   direccionM = IzqDerM = ArribaAbajoM = true;
@@ -178,22 +178,22 @@ void loop()
 
     Estabilizador = 1;
     if (EstabilizadorAux == 0) {
-      digitalWrite(LlantaIA, LOW);
-      digitalWrite(LlantaIR, HIGH);
+      digitalWrite(LlantaIA, HIGH);
+      digitalWrite(LlantaIR, LOW);
 
-      digitalWrite(LlantaDA, HIGH);
-      digitalWrite(LlantaDR, LOW);
+      digitalWrite(LlantaDA, LOW);
+      digitalWrite(LlantaDR, HIGH);
 
       Serial.println("Girando izquierda 1");
     } else {
       Serial.println("Girando izquierda");
-      if(!enGiro){
+      if (!enGiro) {
         enGiro = true;
         tiempoGiro = millis();
-      } else if (enGiro && abs(millis() - tiempoGiro) >= 3000 && abs(millis() - tiempoGiro) <= 3500){
+      } else if (enGiro && abs(millis() - tiempoGiro) >= 3000 && abs(millis() - tiempoGiro) <= 3500) {
         //ANTES
         //Si es verdadero va sobre el eje Y
-         if (direccionM) {
+        if (direccionM) {
           //Vamos hacia arriba
           if (ArribaAbajoM) {
             IzqDerM = false;
@@ -238,20 +238,20 @@ void loop()
     analogWrite(PwmD, 30);
 
     Estabilizador = 2;
-    if (EstabilizadorAux == 1) {
+    if (EstabilizadorAux == 0) {
       //Colocamos que las llantas vayan hacia Adelante
-      Serial.println("Girando derecha 1"); 
-      digitalWrite(LlantaIA, HIGH);
-      digitalWrite(LlantaIR, LOW);
+      Serial.println("Girando derecha 1");
+      digitalWrite(LlantaIA, LOW);
+      digitalWrite(LlantaIR, HIGH);
 
-      digitalWrite(LlantaDA, LOW);
-      digitalWrite(LlantaDR, HIGH);
+      digitalWrite(LlantaDA, HIGH);
+      digitalWrite(LlantaDR, LOW);
     } else {
       Serial.println("Girando derecha ");
-      if(!enGiro){
+      if (!enGiro) {
         enGiro = true;
         tiempoGiro = millis();
-      } else if (enGiro && abs(millis() - tiempoGiro) >= 3000 && abs(millis() - tiempoGiro) <= 3500){
+      } else if (enGiro && abs(millis() - tiempoGiro) >= 3000 && abs(millis() - tiempoGiro) <= 3500) {
         if (direccionM) {
           if (ArribaAbajoM) {
             IzqDerM = true;
@@ -278,8 +278,8 @@ void loop()
       digitalWrite(LlantaIA, HIGH);
       digitalWrite(LlantaIR, LOW);
 
-      digitalWrite(LlantaDA, HIGH);
-      digitalWrite(LlantaDR, LOW);
+      digitalWrite(LlantaDA, LOW);
+      digitalWrite(LlantaDR, HIGH);
       delay(100);
     }
   }
@@ -291,18 +291,51 @@ void loop()
     //Detenemos el carro
     detener();
     //Retrosedemos un poco para que el robot sepa a donde girar
-    retroceder(100, 40, 10);
+    analogWrite(PwmI, 10);
+    analogWrite(PwmD, 40);
+    digitalWrite(LlantaIA, HIGH);
+    digitalWrite(LlantaIR, LOW);
+
+    digitalWrite(LlantaDA, HIGH);
+    digitalWrite(LlantaDR, LOW);
+    delay(100);
+    analogWrite(PwmI, 30);
+    analogWrite(PwmD, 30);
+    digitalWrite(LlantaIA, HIGH);
+    digitalWrite(LlantaIR, LOW);
+
+    digitalWrite(LlantaDA, HIGH);
+    digitalWrite(LlantaDR, LOW);
+    delay(100);
+
 
     Estabilizador = 1;
+    EstabilizadorAux = 0;
   }
 
   if (SA == LOW && SB == LOW && SC == HIGH) {
     //Detenemos el carro
     detener();
     //Retrosedemos un poco para que el robot sepa a donde girar
-    retroceder(100, 10, 40);
+    analogWrite(PwmI, 40);
+    analogWrite(PwmD, 10);
+    digitalWrite(LlantaIA, HIGH);
+    digitalWrite(LlantaIR, LOW);
+
+    digitalWrite(LlantaDA, HIGH);
+    digitalWrite(LlantaDR, LOW);
+    delay(100);
+    analogWrite(PwmI, 30);
+    analogWrite(PwmD, 30);
+    digitalWrite(LlantaIA, HIGH);
+    digitalWrite(LlantaIR, LOW);
+
+    digitalWrite(LlantaDA, HIGH);
+    digitalWrite(LlantaDR, LOW);
+    delay(100);
 
     Estabilizador = 2;
+    EstabilizadorAux = 0;
   }
 
   //Estabilizador
@@ -312,6 +345,7 @@ void loop()
     //Vemos de que lado fue el que se estabilizo
     if (Estabilizador == 2)
     {
+      Serial.println("gira a la DERECHA");
       //Se configura la velocidad para que este pueda dar una vuelta y pueda encontrar a donde debe irse y no salirse
       analogWrite(PwmI, 30);
       analogWrite(PwmD, 30);
@@ -322,11 +356,12 @@ void loop()
       digitalWrite(LlantaDA, LOW);
       digitalWrite(LlantaDR, HIGH);
 
-      delay(100);
+      delay(300);
     }
 
     if (Estabilizador == 1)
     {
+      Serial.println("gira a la IZQUIERDA");
       //Se configura la velocidad para que este pueda dar una vuelta y pueda encontrar a donde debe irse y no salirse
       analogWrite(PwmI, 30);
       analogWrite(PwmD, 30);
@@ -337,6 +372,17 @@ void loop()
       digitalWrite(LlantaDA, HIGH);
       digitalWrite(LlantaDR, LOW);
 
+      delay(300);
+    }
+    if (Estabilizador == 0) {
+      Serial.println("se mueve enfrente");
+      analogWrite(PwmI, 30);
+      analogWrite(PwmD, 30);
+      digitalWrite(LlantaIA, HIGH);
+      digitalWrite(LlantaIR, LOW);
+
+      digitalWrite(LlantaDA, HIGH);
+      digitalWrite(LlantaDR, LOW);
       delay(100);
     }
   }
@@ -344,22 +390,22 @@ void loop()
   if (SA == LOW && SB == LOW && SC == LOW)
   {
     //Vemos si este Estabilizador iba recto
-    if (EstabilizadorAux == 0) {
-      detener();
-      retroceder(200, 30, 30);
-    } else {
-      //Configuramos la velociad para que ambas llantas vayan a la misma velocidad y por ende vaya recto
-      analogWrite(PwmI, 25);
-      analogWrite(PwmD, 25);
+    //if (EstabilizadorAux == 0) {
+    // detener();
+    // retroceder(200, 30, 30);
+    //} else {
+    //Configuramos la velociad para que ambas llantas vayan a la misma velocidad y por ende vaya recto
+    analogWrite(PwmI, 25);
+    analogWrite(PwmD, 25);
 
-      //Colocamos que las llantas vayan hacia Adelante
-      digitalWrite(LlantaIA, HIGH);
-      digitalWrite(LlantaIR, LOW);
+    //Colocamos que las llantas vayan hacia Adelante
+    digitalWrite(LlantaIA, HIGH);
+    digitalWrite(LlantaIR, LOW);
 
-      digitalWrite(LlantaDA, HIGH);
-      digitalWrite(LlantaDR, LOW);
-      delay(300);
-    }
+    digitalWrite(LlantaDA, HIGH);
+    digitalWrite(LlantaDR, LOW);
+    delay(300);
+    //}
   }
   //Activamos el trigger
   digitalWrite(Trig, LOW);
@@ -404,14 +450,14 @@ void evitarObstaculo() {
       case 0:
         girarDerecha90();
         analogWrite(PwmI, 25);
-      analogWrite(PwmD, 25);
+        analogWrite(PwmD, 25);
 
-      //Colocamos que las llantas vayan hacia Adelante
-      digitalWrite(LlantaIA, HIGH);
-      digitalWrite(LlantaIR, LOW);
+        //Colocamos que las llantas vayan hacia Adelante
+        digitalWrite(LlantaIA, HIGH);
+        digitalWrite(LlantaIR, LOW);
 
-      digitalWrite(LlantaDA, HIGH);
-      digitalWrite(LlantaDR, LOW);
+        digitalWrite(LlantaDA, HIGH);
+        digitalWrite(LlantaDR, LOW);
         Estabilizador = 1;
         tomarDistancia();
         if (hayObstaculo()) {
@@ -579,26 +625,26 @@ void pintarCamino() {
   if (direccionM) {
     if (posYM > 0 && posYM < 7) {
       if (ArribaAbajoM) {
-        matriz.setLed(0,--posYM,posXM,true);
+        matriz.setLed(0, --posYM, posXM, true);
       } else {
-        matriz.setLed(0,++posYM,posXM,true);
+        matriz.setLed(0, ++posYM, posXM, true);
       }
     } else {
       matriz.clearDisplay(0);
       posXM = 3; posYM = 4;
-      matriz.setLed(0,posYM,posXM,true);
+      matriz.setLed(0, posYM, posXM, true);
     }
   } else {
     if (posXM > 0 && posXM < 7) {
-        if (IzqDerM) {
-          matriz.setLed(0,posYM,++posXM,true);
-        } else {
-          matriz.setLed(0,posYM,--posXM,true);
-        }
+      if (IzqDerM) {
+        matriz.setLed(0, posYM, ++posXM, true);
+      } else {
+        matriz.setLed(0, posYM, --posXM, true);
+      }
     } else {
       matriz.clearDisplay(0);
       posXM = 3; posYM = 4;
-      matriz.setLed(0,posYM,posXM,true);
+      matriz.setLed(0, posYM, posXM, true);
     }
   }
 }
