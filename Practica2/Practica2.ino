@@ -1,4 +1,5 @@
 #include <Servo.h>
+#include <LedControl.h>
 //Para sensor ultrasonico
 #define Trig 3
 #define Echo 2
@@ -47,6 +48,12 @@ long distancia;
 int vel = 255;
 
 Servo servo;
+
+int posXM, posYM, delayMatriz, tiempoGiro;
+bool ArribaAbajoM, IzqDerM, direccionM, enGiro;
+
+//Variable que controla la matriz de leds
+LedControl matriz = LedControl(23, 27, 25, 1);
 
 void detener() {
   //Detenemos el carro
@@ -112,6 +119,20 @@ void setup()
   servo.attach(10);
 
   pinMode(53, OUTPUT);
+
+   //Sacamos el controlador del modo ahorro de energia
+  matriz.shutdown(0, false);
+
+  //Definimos la intensisdad a medio para el controlador
+  matriz.setIntensity(0, 8);
+
+  //Prendemos la posicion inicial
+  posXM = 3; posYM = 4;
+  matriz.setLed(0,posYM,posXM,true);
+  delayMatriz = 0;
+
+  direccionM = IzqDerM = ArribaAbajoM = true;
+  enGiro = 0;
 }
 
 void loop()
@@ -137,6 +158,12 @@ void loop()
     digitalWrite(LlantaDA, HIGH);
     digitalWrite(LlantaDR, LOW);
 
+    if (delayMatriz >= 2500) {
+      pintarCamino();
+      //Reiniciamos delay acumulado
+      delayMatriz = 0;
+    } else delayMatriz++;
+
     Estabilizador = 0;
     EstabilizadorAux = 1;
   }
@@ -156,7 +183,40 @@ void loop()
 
       digitalWrite(LlantaDA, HIGH);
       digitalWrite(LlantaDR, LOW);
+
+      Serial.println("Girando izquierda 1");
     } else {
+      Serial.println("Girando izquierda");
+      if(!enGiro){
+        enGiro = true;
+        tiempoGiro = millis();
+      } else if (enGiro && abs(millis() - tiempoGiro) >= 3000 && abs(millis() - tiempoGiro) <= 3500){
+        //ANTES
+        //Si es verdadero va sobre el eje Y
+         if (direccionM) {
+          //Vamos hacia arriba
+          if (ArribaAbajoM) {
+            IzqDerM = false;
+          } else {
+            IzqDerM = true;
+          }
+        } else {
+          //Si IzqDerM es verdadero iba hacia la derecha
+          if (IzqDerM) {
+            ArribaAbajoM = true;
+          } else {
+            ArribaAbajoM = false;
+          }
+        }
+
+        //Cambia de eje en cual se mueve de tal manera que si esta en Y pasa a moverse en X
+        direccionM = !direccionM;
+
+        enGiro = false;
+        tiempoGiro = 0;
+        Serial.println("Girando izquierda");
+      }
+
       analogWrite(PwmI, 30);
       analogWrite(PwmD, 30);
       digitalWrite(LlantaIA, LOW);
@@ -166,6 +226,7 @@ void loop()
       digitalWrite(LlantaDR, LOW);
       delay(100);
     }
+
 
   }
 
@@ -178,14 +239,40 @@ void loop()
 
     Estabilizador = 2;
     if (EstabilizadorAux == 1) {
-
       //Colocamos que las llantas vayan hacia Adelante
+      Serial.println("Girando derecha 1"); 
       digitalWrite(LlantaIA, HIGH);
       digitalWrite(LlantaIR, LOW);
 
       digitalWrite(LlantaDA, LOW);
       digitalWrite(LlantaDR, HIGH);
     } else {
+      Serial.println("Girando derecha ");
+      if(!enGiro){
+        enGiro = true;
+        tiempoGiro = millis();
+      } else if (enGiro && abs(millis() - tiempoGiro) >= 3000 && abs(millis() - tiempoGiro) <= 3500){
+        if (direccionM) {
+          if (ArribaAbajoM) {
+            IzqDerM = true;
+          } else {
+            IzqDerM = false;
+          }
+        } else {
+          if (IzqDerM) {
+            ArribaAbajoM = false;
+          } else {
+            ArribaAbajoM = true;
+          }
+        }
+
+        direccionM = !direccionM;
+
+        enGiro = false;
+        tiempoGiro = 0;
+
+        Serial.println("Girando derecha");
+      }
       analogWrite(PwmI, 30);
       analogWrite(PwmD, 30);
       digitalWrite(LlantaIA, HIGH);
@@ -223,7 +310,7 @@ void loop()
   if (SA == HIGH && SB == HIGH && SC == HIGH)
   {
     //Vemos de que lado fue el que se estabilizo
-    if (Estabilizador == 1)
+    if (Estabilizador == 2)
     {
       //Se configura la velocidad para que este pueda dar una vuelta y pueda encontrar a donde debe irse y no salirse
       analogWrite(PwmI, 30);
@@ -238,7 +325,7 @@ void loop()
       delay(100);
     }
 
-    if (Estabilizador == 2)
+    if (Estabilizador == 1)
     {
       //Se configura la velocidad para que este pueda dar una vuelta y pueda encontrar a donde debe irse y no salirse
       analogWrite(PwmI, 30);
@@ -288,7 +375,7 @@ void loop()
   duracion = pulseIn(Echo, HIGH, 500);
   //ecuacion para obtener la distancia del objeto
   distancia = (duracion / 2) / 29;
-  Serial.println(distancia);
+  //Serial.println(distancia);
   if (distancia <= 6 && distancia >= 2) {  // si la distancia es menor de 6cm
     Serial.println("Entro");
     evitarObstaculo();
@@ -485,4 +572,33 @@ boolean hayLinea() {
     return true;
   }
   return false;
+}
+
+void pintarCamino() {
+  //Ponemos un puntito delante
+  if (direccionM) {
+    if (posYM > 0 && posYM < 7) {
+      if (ArribaAbajoM) {
+        matriz.setLed(0,--posYM,posXM,true);
+      } else {
+        matriz.setLed(0,++posYM,posXM,true);
+      }
+    } else {
+      matriz.clearDisplay(0);
+      posXM = 3; posYM = 4;
+      matriz.setLed(0,posYM,posXM,true);
+    }
+  } else {
+    if (posXM > 0 && posXM < 7) {
+        if (IzqDerM) {
+          matriz.setLed(0,posYM,++posXM,true);
+        } else {
+          matriz.setLed(0,posYM,--posXM,true);
+        }
+    } else {
+      matriz.clearDisplay(0);
+      posXM = 3; posYM = 4;
+      matriz.setLed(0,posYM,posXM,true);
+    }
+  }
 }
