@@ -50,14 +50,16 @@ int vel = 255;
 
 Servo servo;
 
-int posXM, posYM, delayMatriz, tiempoGiro;
+int posXM, posYM, delayMatriz;
 bool ArribaAbajoM, IzqDerM, direccionM, enGiro;
+unsigned long tiempoGiro, registroGiro;
+
 
 //Variable que controla la matriz de leds
 LedControl matriz = LedControl(23, 27, 25, 1);
 
 Stepper stepperI = Stepper(4,29,31,33,35);
-Stepper stepperD = Stepper(4,41,43,45,47);
+Stepper stepperD = Stepper(4,39,41,43,45);
 
 void detener() {
   //Detenemos el carro
@@ -136,7 +138,8 @@ void setup()
   delayMatriz = 0;
 
   direccionM = IzqDerM = ArribaAbajoM = true;
-  enGiro = 0;
+  enGiro = false;
+  tiempoGiro = 0;
 }
 
 void loop()
@@ -170,8 +173,15 @@ void loop()
       stepperD.step(2);
       stepperI.step(2);
 
+      pintarCamino();
+
       delayMatriz = 0;
     } else delayMatriz++;
+
+    if (enGiro && abs(millis() - tiempoGiro) >= 3200) {
+      enGiro = false; tiempoGiro = 0;
+      Serial.println("Reinicio");
+    }
 
     Estabilizador = 0;
     EstabilizadorAux = 1;
@@ -182,8 +192,8 @@ void loop()
   {
     //Este es el caso en donde el robot debe girar a la izquierda
     //Hacemos girar el robot en contra de las agujas del reloj
-    analogWrite(PwmI, 40);
-    analogWrite(PwmD, 40);
+    analogWrite(PwmI, 35);
+    analogWrite(PwmD, 35);
 
     Estabilizador = 1;
     if (EstabilizadorAux == 0) {
@@ -196,7 +206,7 @@ void loop()
       if (!enGiro) {
         enGiro = true;
         tiempoGiro = millis();
-      } else if (enGiro && abs(millis() - tiempoGiro) >= 2300 && abs(millis() - tiempoGiro) <= 2800) {
+      } else if (enGiro && abs(millis() - tiempoGiro) >= 3100 && abs(millis() - tiempoGiro) <= 3300) {
         //ANTES
         //Si es verdadero va sobre el eje Y
         if (direccionM) {
@@ -219,13 +229,14 @@ void loop()
         direccionM = !direccionM;
 
         enGiro = false;
+        delay(1);
         tiempoGiro = 0;
         Serial.print("Girando izquierda - ");
         Serial.println(tiempoGiro);
-      } else if (enGiro && abs(millis() - tiempoGiro) >= 2800) enGiro = false;
+      }
 
-      analogWrite(PwmI, 40);
-      analogWrite(PwmD, 40);
+      analogWrite(PwmI, 35);
+      analogWrite(PwmD, 35);
       digitalWrite(LlantaIA, LOW);
       digitalWrite(LlantaIR, HIGH);
 
@@ -247,8 +258,8 @@ void loop()
   if (SA == LOW && SB == HIGH && SC == HIGH)
   {
     //Hacemos girar el robot a favor de las agujas del reloj
-    analogWrite(PwmI, 40);
-    analogWrite(PwmD, 40);
+    analogWrite(PwmI, 35);
+    analogWrite(PwmD, 35);
 
     Estabilizador = 2;
     if (EstabilizadorAux == 0) {
@@ -262,7 +273,7 @@ void loop()
       if (!enGiro) {
         enGiro = true;
         tiempoGiro = millis();
-      } else if (enGiro && abs(millis() - tiempoGiro) >= 2300 && abs(millis() - tiempoGiro) <= 2800) {
+      } else if (enGiro && abs(millis() - tiempoGiro) >= 3100 && abs(millis() - tiempoGiro) <= 3300) {
         if (direccionM) {
           if (ArribaAbajoM) {
             IzqDerM = true;
@@ -280,13 +291,17 @@ void loop()
         direccionM = !direccionM;
 
         enGiro = false;
+        delay(1);
         tiempoGiro = 0;
+
+        //2700 -> 5401
+        registroGiro = millis();
 
         Serial.print("Girando derecha - ");
         Serial.println(tiempoGiro);
-      } else if (enGiro && abs(millis() - tiempoGiro) >= 2800) enGiro = false;
-      analogWrite(PwmI, 40);
-      analogWrite(PwmD, 40);
+      }
+      analogWrite(PwmI, 35);
+      analogWrite(PwmD, 35);
       digitalWrite(LlantaIA, HIGH);
       digitalWrite(LlantaIR, LOW);
 
