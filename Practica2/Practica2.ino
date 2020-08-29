@@ -36,6 +36,7 @@ int SA, SB, SC;
 int Estabilizador = 0;
 // EstabilizadorAux nos ayuda a ver si el objeto iba recto y se salio de de la linea
 int EstabilizadorAux = 1;
+bool d=false;//direccion de la barredora
 
 // Velocidad Pwm
 /*
@@ -48,7 +49,7 @@ long duracion;
 long distancia;
 int vel = 255;
 
-Servo servo;
+Servo servo, servo2;
 
 int posXM, posYM, delayMatriz;
 bool ArribaAbajoM, IzqDerM, direccionM, enGiro;
@@ -58,8 +59,8 @@ unsigned long tiempoGiro, registroGiro;
 //Variable que controla la matriz de leds
 LedControl matriz = LedControl(23, 27, 25, 1);
 
-Stepper stepperI = Stepper(4,29,31,33,35);
-Stepper stepperD = Stepper(4,39,41,43,45);
+Stepper stepperI = Stepper(4, 29, 31, 33, 35);
+Stepper stepperD = Stepper(4, 39, 41, 43, 45);
 
 void detener() {
   //Detenemos el carro
@@ -140,6 +141,9 @@ void setup()
   direccionM = IzqDerM = ArribaAbajoM = true;
   enGiro = false;
   tiempoGiro = 0;
+
+  servo2.attach(8);
+  servo2.write(180);
 }
 
 void loop()
@@ -472,6 +476,7 @@ void loop()
   //ecuacion para obtener la distancia del objeto
   distancia = (duracion / 2) / 29;
   //Serial.println(distancia);
+  girarServo(); 
   if (distancia <= 6 && distancia >= 2) {  // si la distancia es menor de 6cm
     Serial.println("Entro");
     evitarObstaculo();
@@ -678,5 +683,22 @@ void pintarCamino() {
       posXM = 3; posYM = 4;
       matriz.setLed(0, posYM, posXM, true);
     }
+  }
+}
+
+void girarServo() {
+  SA = analogRead(A0);
+  Serial.println(SA);
+  if (SA >= 36 && SA <= 42) {  // si detecta color amarillo
+    Serial.println("------------------------------------Obstaculo-------------------------------");
+    detenerCachito();
+    if (d) {
+      servo2.write(180);
+      d = false;
+    } else {
+      servo2.write(0);
+      d = true;
+    }
+    delay(3500);
   }
 }
