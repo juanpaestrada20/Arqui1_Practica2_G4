@@ -32,11 +32,13 @@
   SA, SB, Sc -> nos ayudaran para la lectura de los sensores para saber sobre que se esta moviendo el robot
   Estabilizador -> nos indica que llanta dio mas fuerza para que se estabilizara en la direccion correcta
 */
-int SA, SB, SC;
+int SA, SB, SC, SBarredora;
 int Estabilizador = 0;
 // EstabilizadorAux nos ayuda a ver si el objeto iba recto y se salio de de la linea
 int EstabilizadorAux = 1;
 bool d=false;//direccion de la barredora
+
+bool matrizObstaculo[8][8];
 
 // Velocidad Pwm
 /*
@@ -51,8 +53,8 @@ int vel = 255;
 
 Servo servo, servo2;
 
-int posXM, posYM, delayMatriz;
-bool ArribaAbajoM, IzqDerM, direccionM, enGiro;
+int posXM, posYM, delayMatriz, delayObstaculo;
+bool ArribaAbajoM, IzqDerM, direccionM, enGiro, prenderObstaculo;
 unsigned long tiempoGiro, registroGiro;
 
 
@@ -144,6 +146,9 @@ void setup()
 
   servo2.attach(8);
   servo2.write(180);
+
+  limpiarMatrizObjetos();
+  
 }
 
 void loop()
@@ -169,7 +174,9 @@ void loop()
     digitalWrite(LlantaDA, HIGH);
     digitalWrite(LlantaDR, LOW);
 
-    if (delayMatriz >= 2500) {
+    if (delayMatriz >= 1500) {
+
+      
       Serial.print(enGiro);
       Serial.print("  -  ");
       Serial.println(abs(millis() - tiempoGiro));
@@ -177,9 +184,10 @@ void loop()
       stepperD.step(2);
       stepperI.step(2);
 
-      pintarCamino();
+      if (!enGiro) pintarCamino();
 
       delayMatriz = 0;
+
     } else delayMatriz++;
 
     if (enGiro && abs(millis() - tiempoGiro) >= 3200) {
@@ -206,11 +214,16 @@ void loop()
 
       digitalWrite(LlantaDA, LOW);
       digitalWrite(LlantaDR, HIGH);
+
+      stepperD.step(-1);
+      stepperI.step(1);
     } else {
-      if (!enGiro) {
+
+      //Cosas que pintan
+      if (!enGiro&& ( registroGiro == 0 ||  abs(millis() - registroGiro) >= 2000 )) {
         enGiro = true;
         tiempoGiro = millis();
-      } else if (enGiro && abs(millis() - tiempoGiro) >= 3100 && abs(millis() - tiempoGiro) <= 3300) {
+      } else if (enGiro && abs(millis() - tiempoGiro) >= 2700 && abs(millis() - tiempoGiro) <= 3000) {
         //ANTES
         //Si es verdadero va sobre el eje Y
         if (direccionM) {
@@ -235,6 +248,8 @@ void loop()
         enGiro = false;
         delay(1);
         tiempoGiro = 0;
+
+        registroGiro = millis();
         Serial.print("Girando izquierda - ");
         Serial.println(tiempoGiro);
       }
@@ -246,7 +261,12 @@ void loop()
 
       digitalWrite(LlantaDA, HIGH);
       digitalWrite(LlantaDR, LOW);
-      delay(100);
+
+      stepperD.step(-1);
+      stepperI.step(1);
+      stepperD.step(1);
+      stepperI.step(1);
+      delay(50);
 
       digitalWrite(LlantaIA, HIGH);
       digitalWrite(LlantaIR, LOW);
@@ -273,11 +293,15 @@ void loop()
 
       digitalWrite(LlantaDA, HIGH);
       digitalWrite(LlantaDR, LOW);
+
+      stepperD.step(1);
+      stepperI.step(-1);
     } else {
-      if (!enGiro) {
+      if (!enGiro && ( registroGiro == 0 ||  abs(millis() - registroGiro) >= 2000)) {
         enGiro = true;
         tiempoGiro = millis();
-      } else if (enGiro && abs(millis() - tiempoGiro) >= 3100 && abs(millis() - tiempoGiro) <= 3300) {
+      }
+      else if (enGiro && abs(millis() - tiempoGiro) >= 2700 && abs(millis() - tiempoGiro) <= 3000) {
         if (direccionM) {
           if (ArribaAbajoM) {
             IzqDerM = true;
@@ -311,13 +335,19 @@ void loop()
 
       digitalWrite(LlantaDA, LOW);
       digitalWrite(LlantaDR, HIGH);
-      delay(100);
+
+      stepperD.step(1);
+      stepperI.step(-1);
+      stepperD.step(1);
+      stepperI.step(1);
+      delay(50);
 
       digitalWrite(LlantaIA, HIGH);
       digitalWrite(LlantaIR, LOW);
 
       digitalWrite(LlantaDA, HIGH);
       digitalWrite(LlantaDR, LOW);
+
     }
   }
 
@@ -336,7 +366,9 @@ void loop()
 
     digitalWrite(LlantaDA, HIGH);
     digitalWrite(LlantaDR, LOW);
-    delay(100);
+    stepperD.step(-2);
+    stepperI.step(-1);
+    delay(50);
     analogWrite(PwmI, 30);
     analogWrite(PwmD, 30);
     digitalWrite(LlantaIA, HIGH);
@@ -344,7 +376,9 @@ void loop()
 
     digitalWrite(LlantaDA, HIGH);
     digitalWrite(LlantaDR, LOW);
-    delay(100);
+    stepperD.step(-1);
+    stepperI.step(-1);
+    delay(50);
 
 
     Estabilizador = 1;
@@ -363,7 +397,10 @@ void loop()
 
     digitalWrite(LlantaDA, HIGH);
     digitalWrite(LlantaDR, LOW);
-    delay(100);
+
+    stepperD.step(-1);
+    stepperI.step(-2);
+    delay(50);
     analogWrite(PwmI, 30);
     analogWrite(PwmD, 30);
     digitalWrite(LlantaIA, HIGH);
@@ -371,7 +408,9 @@ void loop()
 
     digitalWrite(LlantaDA, HIGH);
     digitalWrite(LlantaDR, LOW);
-    delay(100);
+    stepperD.step(-1);
+    stepperI.step(-1);
+    delay(50);
 
     Estabilizador = 2;
     EstabilizadorAux = 0;
@@ -394,7 +433,9 @@ void loop()
       digitalWrite(LlantaDA, LOW);
       digitalWrite(LlantaDR, HIGH);
 
-      delay(300);
+      stepperD.step(-1);
+      stepperI.step(1);
+      delay(200);
       analogWrite(PwmI, 30);
       analogWrite(PwmD, 30);
       digitalWrite(LlantaIA, HIGH);
@@ -402,7 +443,10 @@ void loop()
 
       digitalWrite(LlantaDA, HIGH);
       digitalWrite(LlantaDR, LOW);
-      delay(100);
+
+      stepperD.step(1);
+      stepperI.step(1);
+      delay(50);
     }
 
     if (Estabilizador == 1)
@@ -417,7 +461,9 @@ void loop()
       digitalWrite(LlantaDA, HIGH);
       digitalWrite(LlantaDR, LOW);
 
-      delay(300);
+      stepperD.step(1);
+      stepperI.step(-1);
+      delay(200);
 
       analogWrite(PwmI, 30);
       analogWrite(PwmD, 30);
@@ -426,7 +472,10 @@ void loop()
 
       digitalWrite(LlantaDA, HIGH);
       digitalWrite(LlantaDR, LOW);
-      delay(100);
+
+      stepperD.step(1);
+      stepperI.step(1);
+      delay(50);
     }
     if (Estabilizador == 0) {
       Serial.println("se mueve enfrente");
@@ -458,7 +507,10 @@ void loop()
 
     digitalWrite(LlantaDA, HIGH);
     digitalWrite(LlantaDR, LOW);
-    delay(300);
+
+    stepperD.step(1);
+    stepperI.step(1);
+    delay(200);
     //}
   }
   //Activamos el trigger
@@ -475,12 +527,14 @@ void loop()
   duracion = pulseIn(Echo, HIGH, 500);
   //ecuacion para obtener la distancia del objeto
   distancia = (duracion / 2) / 29;
-  //Serial.println(distancia);
+  
   girarServo(); 
-  if (distancia <= 6 && distancia >= 2) {  // si la distancia es menor de 6cm
+  if (distancia <= 10 && distancia >= 2) {  // si la distancia es menor de 6cm
     Serial.println("Entro");
     evitarObstaculo();
   }
+
+  pintarObstaculos();
 
 }
 
@@ -496,16 +550,87 @@ void evitarObstaculo() {
         si hay obstaculo --> girar sobre si en el sentido contrario a donde giro
         no hay obstaculo --> avanzamos recto
   */
+
+  //Mini validaciones para pintar matriz
+  int obstaculoX, obstaculoY, mov1X, mov1Y, mov2X, mov2Y, mov3X, mov3Y;
+  bool pos2 = false, pos3 = false;
+
+  if (direccionM) {
+    if (ArribaAbajoM) {
+      if (posYM > 0) {
+        obstaculoX = posXM; obstaculoY = posYM-1;
+      } else {
+        matriz.clearDisplay(0);
+        limpiarMatrizObjetos();
+        obstaculoX = 4; obstaculoY = 3;
+      }
+      
+      mov1X = obstaculoX + 1; mov1Y = obstaculoY;
+      mov2X = obstaculoX; mov2Y = obstaculoY - 1;
+      mov3X = obstaculoX - 1; mov3Y = obstaculoY; 
+    } else {
+      if (posYM < 7) {
+        obstaculoX = posXM; obstaculoY = posYM+1;
+      } else {
+        matriz.clearDisplay(0);
+        limpiarMatrizObjetos();
+        obstaculoX = 4; obstaculoY = 3;
+      }
+
+      mov1X = obstaculoX - 1; mov1Y = obstaculoY;
+      mov2X = obstaculoX; mov2Y = obstaculoY + 1;
+      mov3X = obstaculoX + 1; mov3Y = obstaculoY; 
+    }
+  } 
+  else {
+    if (IzqDerM) {
+      if (posXM < 7)  {
+        obstaculoX = posXM+1; obstaculoY = posYM;
+      } else {
+        matriz.clearDisplay(0);
+        limpiarMatrizObjetos();
+        obstaculoX = 4; obstaculoY = 3;
+      }
+
+      mov1X = obstaculoX; mov1Y = obstaculoY + 1;
+      mov2X = obstaculoX + 1; mov2Y = obstaculoY;
+      mov3X = obstaculoX; mov3Y = obstaculoY - 1; 
+
+    } else {
+      if (posXM > 0) {
+        obstaculoX = posXM-1; obstaculoY = posYM;
+      } else {
+        matriz.clearDisplay(0);
+        limpiarMatrizObjetos();
+        obstaculoX = 4; obstaculoY = 3;
+      }
+
+      mov1X = obstaculoX; mov1Y = obstaculoY - 1;
+      mov2X = obstaculoX - 1; mov2Y = obstaculoY;
+      mov3X = obstaculoX; mov3Y = obstaculoY + 1; 
+      
+    }
+  }
+
+  matrizObstaculo[obstaculoY][obstaculoX] = 1;
+
   int estado = 0;
   digitalWrite(53, HIGH);                // Enciende LED
   girarDerecha90();
   continuarRecto(200);
+
+  enGiro = false;
+
+  //Posibles posiciones
+
   while ( estado < 3 ) {
     Serial.print("Estado:");
     Serial.println(estado);
+    pintarObstaculos();
     switch (estado) {
       case 0:
-        if (!recto(5))return;
+        
+        if (!recto(5)) return;
         girarIzquierda90();
         tomarDistancia();
         if (hayObstaculo()) {
@@ -514,10 +639,21 @@ void evitarObstaculo() {
           estado++;
         }
         break;
-      case 1: case 2: case 3:
+      case 3: matriz.setLed(0, mov3Y, mov3X, true); pos3 = true;
+      case 2: matriz.setLed(0, mov2Y, mov2X, true); pos2 = true;
+      case 1: matriz.setLed(0, mov1Y, mov1X, true);
+        //Cosas para pintar
+        if (pos3) {
+          posXM = mov3X; posYM = mov3Y;
+        } else if (pos2) {
+          posXM = mov2X; posYM = mov2Y;
+        } else {
+          posXM = mov1X; posYM = mov1Y;
+        }
+
         tomarDistancia();
         if (!hayObstaculo()) {
-          if (!recto(20))return;
+          if (!recto(20)) return;
           girarIzquierda90();
           tomarDistancia();
           if (hayObstaculo()) {
@@ -565,11 +701,30 @@ boolean hayObstaculo() {
 }
 
 void girarDerecha90() {
+  /*COSAS QUE PINTAN*/
+  if (direccionM) {
+    if (ArribaAbajoM) {
+      IzqDerM = true;
+    } else {
+      IzqDerM = false;
+    }
+  } 
+  else {
+    if (IzqDerM) {
+      ArribaAbajoM = false;
+    } else {
+      ArribaAbajoM = true;
+    }
+  }
+
+  direccionM = !direccionM;
+
+  /*MOVIMIENTO*/
   Serial.println("DERECHA");
 
   //Configuramos la velociad para que la llanta izquierda vaya mas rapido y consiga que el carro comience a girar a la derecha
   analogWrite(PwmI, 100);
-  analogWrite(PwmD, 80);
+  analogWrite(PwmD, 100);
 
   //Colocamos que las llantas vayan hacia Adelante
   digitalWrite(LlantaIA, HIGH);
@@ -578,13 +733,33 @@ void girarDerecha90() {
   digitalWrite(LlantaDA, LOW);
   digitalWrite(LlantaDR, HIGH);
 
-  delay(1100);
+  stepperD.step(-1);
+  stepperI.step(1);
+  delay(1050);
   detenerCachito();
 }
 
 void girarIzquierda90() {
+  /*COSAS PARA PINTAR*/
+  if (direccionM) {
+    if (ArribaAbajoM) {
+      IzqDerM = false;
+    } else {
+      IzqDerM = true;
+    }
+  } else {
+    if (IzqDerM) {
+      ArribaAbajoM = true;
+    } else {
+      ArribaAbajoM = false;
+    }
+  }
+  
+  direccionM = !direccionM;
+
+  /*MOVERSE XD*/
   Serial.println("IZQUIERDA");
-  analogWrite(PwmI, 80);
+  analogWrite(PwmI, 100);
   analogWrite(PwmD, 100);
 
   //Colocamos que las llantas vayan hacia Adelante
@@ -593,7 +768,10 @@ void girarIzquierda90() {
 
   digitalWrite(LlantaDA, HIGH);
   digitalWrite(LlantaDR, LOW);
-  delay(1100);
+
+  stepperD.step(1);
+  stepperI.step(-1);
+  delay(1050);
   detenerCachito();
 }
 
@@ -609,13 +787,15 @@ boolean recto(int pasadas) {
 
   digitalWrite(LlantaDA, HIGH);
   digitalWrite(LlantaDR, LOW);
+  stepperD.step(1);
+  stepperI.step(1);
   int contador = 0;
   while (contador < pasadas) {
     if (hayLinea()) {
       return false;
     }
     contador++;
-    delay(135);
+    delay(100);
   }
   return true;
 }
@@ -631,6 +811,9 @@ void continuarRecto(int _delay) {
 
   digitalWrite(LlantaDA, HIGH);
   digitalWrite(LlantaDR, LOW);
+
+  stepperD.step(2);
+  stepperI.step(2);
   delay(_delay);
 }
 
@@ -668,6 +851,7 @@ void pintarCamino() {
       }
     } else {
       matriz.clearDisplay(0);
+      limpiarMatrizObjetos();
       posXM = 3; posYM = 4;
       matriz.setLed(0, posYM, posXM, true);
     }
@@ -680,16 +864,27 @@ void pintarCamino() {
       }
     } else {
       matriz.clearDisplay(0);
+      limpiarMatrizObjetos();
       posXM = 3; posYM = 4;
       matriz.setLed(0, posYM, posXM, true);
     }
   }
 }
 
+void limpiarMatrizObjetos() {
+  for (int i = 0; i < 8; i++)
+  {
+    for (int j = 0; j < 8; j++)
+    {
+      matrizObstaculo[i][j] = 0;
+    }
+  }
+}
+
 void girarServo() {
-  SA = analogRead(A0);
-  Serial.println(SA);
-  if (SA >= 36 && SA <= 42) {  // si detecta color amarillo
+  SBarredora = analogRead(A0);
+  //Serial.println(SA);
+  if (SBarredora >= 36 && SBarredora <= 42) {  // si detecta color amarillo
     Serial.println("------------------------------------Obstaculo-------------------------------");
     detenerCachito();
     if (d) {
@@ -701,4 +896,17 @@ void girarServo() {
     }
     delay(3500);
   }
+}
+
+void pintarObstaculos(){
+  if (delayObstaculo >= 1000){
+    for (int i = 0; i < 8; i++)
+    {
+      for (int j = 0; j < 8; j++)
+      {
+        if ( matrizObstaculo[j][i] == 1) matriz.setLed(0,j,i,prenderObstaculo);
+      }
+    }
+    prenderObstaculo = !prenderObstaculo;
+  } else delayObstaculo++;
 }
