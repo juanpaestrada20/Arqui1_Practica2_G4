@@ -360,7 +360,7 @@ void loop()
     detener();
     //Retrosedemos un poco para que el robot sepa a donde girar
     analogWrite(PwmI, 10);
-    analogWrite(PwmD, 40);
+    analogWrite(PwmD, 80);
     digitalWrite(LlantaIA, HIGH);
     digitalWrite(LlantaIR, LOW);
 
@@ -390,7 +390,7 @@ void loop()
     //Detenemos el carro
     detener();
     //Retrosedemos un poco para que el robot sepa a donde girar
-    analogWrite(PwmI, 40);
+    analogWrite(PwmI, 80);
     analogWrite(PwmD, 10);
     digitalWrite(LlantaIA, HIGH);
     digitalWrite(LlantaIR, LOW);
@@ -424,6 +424,24 @@ void loop()
     if (Estabilizador == 2)
     {
       //Se configura la velocidad para que este pueda dar una vuelta y pueda encontrar a donde debe irse y no salirse
+      /*COSAS QUE PINTAN*/
+      if (direccionM) {
+        if (ArribaAbajoM) {
+          IzqDerM = true;
+        } else {
+          IzqDerM = false;
+        }
+      } 
+      else {
+        if (IzqDerM) {
+          ArribaAbajoM = false;
+        } else {
+          ArribaAbajoM = true;
+        }
+      }
+
+      direccionM = !direccionM;
+
       analogWrite(PwmI, 35);
       analogWrite(PwmD, 30);
 
@@ -452,6 +470,24 @@ void loop()
     if (Estabilizador == 1)
     {
       //Se configura la velocidad para que este pueda dar una vuelta y pueda encontrar a donde debe irse y no salirse
+      /*COSAS PARA PINTAR*/
+      if (direccionM) {
+        if (ArribaAbajoM) {
+          IzqDerM = false;
+        } else {
+          IzqDerM = true;
+        }
+      } else {
+        if (IzqDerM) {
+          ArribaAbajoM = true;
+        } else {
+          ArribaAbajoM = false;
+        }
+      }
+
+      direccionM = !direccionM;
+
+
       analogWrite(PwmI, 30);
       analogWrite(PwmD, 35);
 
@@ -498,8 +534,8 @@ void loop()
     // retroceder(200, 30, 30);
     //} else {
     //Configuramos la velociad para que ambas llantas vayan a la misma velocidad y por ende vaya recto
-    analogWrite(PwmI, 25);
-    analogWrite(PwmD, 25);
+    analogWrite(PwmI, 75);
+    analogWrite(PwmD, 75);
 
     //Colocamos que las llantas vayan hacia Adelante
     digitalWrite(LlantaIA, HIGH);
@@ -719,6 +755,7 @@ void girarDerecha90() {
 
   direccionM = !direccionM;
 
+  Estabilizador = 2;
   /*MOVIMIENTO*/
   Serial.println("DERECHA");
 
@@ -756,6 +793,8 @@ void girarIzquierda90() {
   }
   
   direccionM = !direccionM;
+
+  Estabilizador = 2;
 
   /*MOVERSE XD*/
   Serial.println("IZQUIERDA");
